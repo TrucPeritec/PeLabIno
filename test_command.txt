@@ -1,0 +1,3 @@
+{"COMMAND":"WRITE_PROPERTIES", "_pin":13, "_state":1}
+{"COMMAND":"READ_PROPERTIES", "_pin":13}
+
