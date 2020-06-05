@@ -1,15 +1,15 @@
 #include "HHAL_GPIO.h"
 #include "HHAL_Prop.h"
-#include "HHAL_Analog.h"
+#include "HHAL_PWM.h"
 
-HHAL_Analog analog_A0;
+HHAL_PWM pwm_5;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   delay(100);
   
-  if (!(analog_A0.begin(A0)))
+  if (!(pwm_5.begin(5, 0)))
   {
 //    Serial.println("Failed !!!");
 //    Serial.println();
@@ -29,7 +29,7 @@ void loop() {
 
     char res[MAX_JSON_DOC_SIZE];
     
-    if (!analog_A0.messageHandler(rev_mess.c_str(), rev_mess.length(), res, sizeof(res)))
+    if (!pwm_5.messageHandler(rev_mess.c_str(), rev_mess.length(), res, sizeof(res)))
     {
       Serial.println(res);
     }

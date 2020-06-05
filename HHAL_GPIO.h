@@ -6,9 +6,9 @@
 #include "HHAL_GPIO_Prop.h"
 #include <ArduinoJson.h>
 
-#define HHAL_GPIO_COMMAND "COMMAND"
-#define HHAL_GPIO_READ_PROPERTIES "READ_PROPERTIES"
-#define HHAL_GPIO_WRITE_PROPERTIES "WRITE_PROPERTIES"
+#define HHAL_GPIO_COMMAND "GPIO_COMMAND"
+#define HHAL_GPIO_READ_PROPERTIES "GPIO_READ_PROPERTIES"
+#define HHAL_GPIO_WRITE_PROPERTIES "GPIO_WRITE_PROPERTIES"
 	#define HHAL_GPIO_PIN "_pin"
 	#define HHAL_GPIO_MODE "_mode"
 	#define HHAL_GPIO_STATE "_state"
@@ -20,16 +20,18 @@
 
 class HHAL_GPIO : HHAL
 {
-protected:
-	virtual int8_t GPIOSetMode();
-	virtual bool GPIORead();
-	virtual int8_t GPIOWrite();
+private:
+	int8_t GPIOInit();
+	int8_t GPIODeinit();
+	bool GPIORead();
+	int8_t GPIOWrite();
 
 public:
 	HHAL_GPIO();
 
-	int8_t begin();
-	int8_t begin(uint8_t pin, uint8_t mode, bool state);
+	virtual int8_t begin();
+	virtual int8_t begin(uint8_t pin, uint8_t mode, bool state);
+	virtual int8_t end();
 	virtual int8_t messageHandler(char* mess, uint32_t mess_len, char* res, uint32_t res_len);
 
 	// setter -----------------------------
@@ -52,7 +54,7 @@ int8_t HHAL_GPIO::begin()
 {
 	if (_self_prop == NULL)
 	{
-		begin(DEFAULT_PIN, DEFAULT_MODE, DEFAULT_STATE);
+		begin(HHAL_GPIO_DEFAULT_PIN, HHAL_GPIO_DEFAULT_MODE, HHAL_GPIO_DEFAULT_STATE);
 
 		return 0;
 	}
@@ -69,7 +71,7 @@ int8_t HHAL_GPIO::begin(uint8_t pin, uint8_t mode, bool state)
 		((HHAL_GPIO_Prop*)_self_prop)->setMode(mode);
 		((HHAL_GPIO_Prop*)_self_prop)->setState(state);
 
-		GPIOSetMode();
+		GPIOInit();
 
 		_self_prop->updateOccupied(1);
 
@@ -77,6 +79,12 @@ int8_t HHAL_GPIO::begin(uint8_t pin, uint8_t mode, bool state)
 	}
 
 	return -1;
+}
+
+int8_t HHAL_GPIO::end()
+{
+	GPIODeinit();
+	delete _self_prop;
 }
 
 
@@ -111,10 +119,24 @@ int8_t HHAL_GPIO::messageHandler(char* mess, uint32_t mess_len, char* res, uint3
 			{
 				if (json_object.containsKey(HHAL_GPIO_STATE))
 				{
+					if (json_object.containsKey(HHAL_GPIO_MODE))
+					{
+						uint8_t mode = doc[HHAL_GPIO_MODE];
+						if (mode != ((HHAL_GPIO_Prop*)_self_prop)->getMode())
+						{
+							((HHAL_GPIO_Prop*)_self_prop)->setMode(mode);
+							GPIOInit();
+						}
+					}
+
 					bool state = doc[HHAL_GPIO_STATE];
 					((HHAL_GPIO_Prop*)_self_prop)->setState(state);
 
-					GPIOWrite();
+					if (((HHAL_GPIO_Prop*)_self_prop)->getMode() == HHAL_GPIO_OUTPUT_MODE)
+					{
+						GPIOWrite();
+					}
+
 					GPIORead();
 
 					res_doc[HHAL_RESPONSE] = HHAL_RESPONSE_OK;
@@ -131,7 +153,7 @@ int8_t HHAL_GPIO::messageHandler(char* mess, uint32_t mess_len, char* res, uint3
 					res_doc[HHAL_RESPONSE] = HHAL_GPIO_RESPONSE_NO_VALUE_TO_WRITE;
 					serializeJson(res_doc, res, res_len);
 
-					return 0;
+					return -1;
 				}
 			}
 			else
@@ -154,13 +176,30 @@ int8_t HHAL_GPIO::messageHandler(char* mess, uint32_t mess_len, char* res, uint3
 	return -4;
 }
 
-int8_t HHAL_GPIO::GPIOSetMode()
+int8_t HHAL_GPIO::GPIOInit()
 {
 	uint8_t pin = ((HHAL_GPIO_Prop*)_self_prop)->getPin();
 	uint8_t mode = ((HHAL_GPIO_Prop*)_self_prop)->getMode();
+	bool state = ((HHAL_GPIO_Prop*)_self_prop)->getState();
 
 	// Hardware dependence--------------------------------------
 	pinMode(pin, mode);
+
+	if (mode == OUTPUT)
+	{
+		digitalWrite(pin, state);
+	}
+	// Hardware dependence--------------------------------------
+
+	return 0;
+}
+
+int8_t HHAL_GPIO::GPIODeinit()
+{
+	uint8_t pin = ((HHAL_GPIO_Prop*)_self_prop)->getPin();
+
+	// Hardware dependence--------------------------------------
+	pinMode(pin, INPUT);
 	// Hardware dependence--------------------------------------
 
 	return 0;

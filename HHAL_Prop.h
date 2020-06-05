@@ -5,7 +5,7 @@
 
 class HHAL_Prop
 {
-private:
+protected:
 	bool _occupied;
 
 public:

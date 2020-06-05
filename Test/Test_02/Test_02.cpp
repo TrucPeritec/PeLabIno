@@ -6,10 +6,10 @@ HHAL_GPIO io_13;
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(100);
   
-  if (io_13.begin(13, OUTPUT, LOW) != 0)
+  if (!(io_13.begin(13, OUTPUT, LOW)))
   {
 //    Serial.println("Failed !!!");
 //    Serial.println();
@@ -24,7 +24,7 @@ void loop() {
     while (Serial.available() > 0)
     {
       rev_mess += (char)Serial.read();
-      delay(2);
+      delayMicroseconds(150);
     }
 
     char res[MAX_JSON_DOC_SIZE];

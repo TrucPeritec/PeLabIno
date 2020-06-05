@@ -22,6 +22,7 @@ public:
 	HHAL();
 
 	virtual int8_t begin();
+	virtual int8_t end();
 	virtual int8_t messageHandler(char* mess, uint32_t mess_len, char* res, uint32_t res_len);
 
 	// setter -----------------------------
